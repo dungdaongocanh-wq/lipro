@@ -31,12 +31,6 @@ $total_cost  = $conn->query("SELECT COALESCE(SUM(total_amount),0) t FROM shipmen
 $total_sell  = $conn->query("SELECT COALESCE(SUM(total_amount),0) t FROM shipment_sells")->fetch_assoc()['t'];
 $total_profit = $total_sell - $total_cost;
 
-// Lô hàng sắp đến hạn ETA trong 7 ngày
-$eta_shipments = $conn->query("SELECT s.job_no, s.hawb, s.eta, c.short_name as cust 
-    FROM shipments s LEFT JOIN customers c ON s.customer_id = c.id 
-    WHERE s.deleted_at IS NULL AND s.eta BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-    ORDER BY s.eta ASC LIMIT 5");
-
 // Thống kê thông báo chưa đọc
 $unread_notif = getUnreadNotificationCount($conn);
 
@@ -272,61 +266,33 @@ $doughnut_colors = json_encode(array_column($status_rows, 'color'));
             </div>
         </div>
 
-        <!-- ─── ETA sắp đến hạn + trạng thái lô ──── -->
+        <!-- ─── Trạng thái lô hàng ──────────────────── -->
         <div class="row mb-4">
-            <!-- Lô hàng sắp đến hạn ETA -->
-            <div class="col-lg-6 mb-3">
-                <div class="card shadow-sm">
-                    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-calendar-event text-warning"></i> Lô hàng sắp đến hạn (7 ngày)</span>
-                        <a href="shipments/index.php" class="btn btn-sm btn-outline-warning">Xem tất cả</a>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-hover mb-0 table-sm">
-                            <thead><tr><th>Job No</th><th>KH</th><th>ETA</th></tr></thead>
-                            <tbody>
-                            <?php
-                            $has_eta = false;
-                            while ($er = $eta_shipments->fetch_assoc()):
-                                $has_eta = true;
-                            ?>
-                            <tr>
-                                <td><strong><?php echo htmlspecialchars($er['job_no']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($er['cust'] ?? '—'); ?></td>
-                                <td>
-                                    <span class="badge bg-warning text-dark">
-                                        <?php echo $er['eta'] ? date('d/m/Y', strtotime($er['eta'])) : '—'; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
-                            <?php if (!$has_eta): ?>
-                            <tr><td colspan="3" class="text-center text-muted py-3">Không có lô hàng sắp đến</td></tr>
-                            <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Trạng thái lô hàng chi tiết -->
-            <div class="col-lg-6 mb-3">
+            <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-list-check text-info"></i> Trạng thái lô hàng
                     </div>
                     <div class="card-body">
-                        <div class="row g-2">
+                        <div class="row g-3">
                             <?php foreach ($status_rows as $sr): ?>
-                            <div class="col-6">
-                                <div class="p-2 rounded text-center" style="background:<?php echo $sr['color']; ?>22;">
-                                    <div class="fw-bold fs-4" style="color:<?php echo $sr['color']; ?>;">
+                            <div class="col-6 col-md-2">
+                                <div class="p-3 rounded text-center" style="background:<?php echo $sr['color']; ?>22; border:1px solid <?php echo $sr['color']; ?>44;">
+                                    <div class="fw-bold fs-3" style="color:<?php echo $sr['color']; ?>;">
                                         <?php echo $sr['count']; ?>
                                     </div>
                                     <small class="text-muted"><?php echo $sr['label']; ?></small>
                                 </div>
                             </div>
                             <?php endforeach; ?>
+                            <div class="col-6 col-md-2">
+                                <div class="p-3 rounded text-center" style="background:#dc354522; border:1px solid #dc354544;">
+                                    <div class="fw-bold fs-3 text-danger">
+                                        <?php echo $stats['shipments_locked']; ?>
+                                    </div>
+                                    <small class="text-muted">Đã khóa</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -413,7 +379,7 @@ $doughnut_colors = json_encode(array_column($status_rows, 'color'));
             </div>
             <div class="col-md-3">
                 <a href="suppliers/add.php" class="btn btn-success w-100 mb-3">
-                    <i class="bi bi-building-add"></i> Thêm nhà cung cấp
+                    <i class="bi bi-building-add"></i> Thêm nhà cung c��p
                 </a>
             </div>
             <?php if (isAdmin()): ?>
