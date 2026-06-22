@@ -1,5 +1,6 @@
 <?php
 require_once '../config/database.php';
+checkLogin();
 
 header('Content-Type: application/json; charset=utf-8');
 

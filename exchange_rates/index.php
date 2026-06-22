@@ -51,7 +51,10 @@ if (intval($check['c']) === 0) {
 // Xóa tỷ giá
 if (isset($_GET['delete']) && isAdmin()) {
     $del_id = intval($_GET['delete']);
-    $conn->query("DELETE FROM exchange_rates WHERE id = $del_id");
+    $del_stmt = $conn->prepare("DELETE FROM exchange_rates WHERE id = ?");
+    $del_stmt->bind_param("i", $del_id);
+    $del_stmt->execute();
+    $del_stmt->close();
     header("Location: index.php?success=deleted");
     exit();
 }

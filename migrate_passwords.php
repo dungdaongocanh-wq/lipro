@@ -3,17 +3,28 @@
  * Script nâng cấp mật khẩu MD5 → bcrypt (chạy 1 lần)
  * Đặt lại tất cả mật khẩu về Admin@123 và yêu cầu đổi lại
  *
- * CÁCH DÙNG: Truy cập URL này một lần trên trình duyệt khi đã đăng nhập admin
- * Sau khi chạy xong, hãy XÓA hoặc đổi tên file này để bảo mật!
+ * CÁCH DÙNG:
+ *   1. Set biến môi trường LIPRO_MIGRATE_KEY (hoặc dùng key mặc định trong .env)
+ *   2. Truy cập URL: /lipro/migrate_passwords.php?key=YOUR_KEY (khi đã đăng nhập admin)
+ *   3. Sau khi chạy xong, hãy XÓA hoặc đổi tên file này!
  */
 
-// Bảo vệ script: chỉ chạy từ CLI hoặc khi có key đúng
-$secret_key = 'lipro_migrate_2024';
-if (PHP_SAPI !== 'cli' && ($_GET['key'] ?? '') !== $secret_key) {
-    die("Truy cập bị từ chối. Thêm ?key=$secret_key vào URL để chạy.");
-}
-
 require_once __DIR__ . '/config/database.php';
+
+// Lấy secret key từ môi trường (ưu tiên) hoặc fallback
+$env_key = getenv('LIPRO_MIGRATE_KEY') ?: 'lipro_migrate_run_once';
+$req_key = $_GET['key'] ?? '';
+
+// Bảo vệ: chỉ chạy từ CLI hoặc khi có key hợp lệ VÀ đã đăng nhập admin
+if (PHP_SAPI !== 'cli') {
+    if (!hash_equals($env_key, $req_key)) {
+        http_response_code(403);
+        die("Truy cập bị từ chối.");
+    }
+    // Kiểm tra phải đăng nhập và là admin
+    checkLogin();
+    checkAdmin();
+}
 
 $conn = getDBConnection();
 

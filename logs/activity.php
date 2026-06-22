@@ -42,7 +42,7 @@ if ($filter_date) {
     $types   .= 's';
 }
 
-$sql = "SELECT * FROM activity_logs" . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY created_at DESC LIMIT 200";
+$sql = "SELECT id, user_id, username, action, module, description, ip_address, created_at FROM activity_logs" . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY created_at DESC LIMIT 200";
 
 $stmt = $conn->prepare($sql);
 if ($params) {

@@ -56,12 +56,16 @@ $sql_monthly = "SELECT
     LEFT JOIN shipment_sells ss ON ss.shipment_id = s.id
     WHERE s.deleted_at IS NULL AND YEAR(s.created_at) = ?";
 if ($filter_month > 0) {
-    $sql_monthly .= " AND MONTH(s.created_at) = $filter_month";
+    $sql_monthly .= " AND MONTH(s.created_at) = ?";
 }
 $sql_monthly .= " GROUP BY DATE_FORMAT(s.created_at, '%Y-%m') ORDER BY month_year ASC";
 
 $stmt = $conn->prepare($sql_monthly);
-$stmt->bind_param("i", $filter_year);
+if ($filter_month > 0) {
+    $stmt->bind_param("ii", $filter_year, $filter_month);
+} else {
+    $stmt->bind_param("i", $filter_year);
+}
 $stmt->execute();
 $monthly_data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();

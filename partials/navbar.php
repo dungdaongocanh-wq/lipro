@@ -193,15 +193,26 @@ $_dir     = basename(dirname($_SERVER['PHP_SELF']));
                         results.innerHTML = '<div class="p-3 text-muted small">Không tìm thấy kết quả</div>';
                     } else {
                         const icons = { shipment: 'bi-box', customer: 'bi-people', supplier: 'bi-truck' };
-                        results.innerHTML = data.map(item =>
-                            `<a href="${item.url}" class="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark border-bottom search-item">
-                                <i class="bi ${icons[item.type] || 'bi-search'} text-primary"></i>
-                                <div>
-                                    <div class="fw-semibold small">${item.label}</div>
-                                    <div class="text-muted" style="font-size:.75rem;">${item.type}</div>
-                                </div>
-                            </a>`
-                        ).join('');
+                        results.innerHTML = data.map(item => {
+                            const a   = document.createElement('a');
+                            a.href    = item.url;
+                            a.className = 'd-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark border-bottom search-item';
+                            const icon = document.createElement('i');
+                            icon.className = 'bi ' + (icons[item.type] || 'bi-search') + ' text-primary';
+                            const div = document.createElement('div');
+                            const title = document.createElement('div');
+                            title.className = 'fw-semibold small';
+                            title.textContent = item.label;
+                            const sub = document.createElement('div');
+                            sub.className = 'text-muted';
+                            sub.style.fontSize = '.75rem';
+                            sub.textContent = item.type;
+                            div.appendChild(title);
+                            div.appendChild(sub);
+                            a.appendChild(icon);
+                            a.appendChild(div);
+                            return a.outerHTML;
+                        }).join('');
                     }
                     results.style.display = 'block';
                 })
