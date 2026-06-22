@@ -111,10 +111,17 @@ if ($freight_code_id) {
 $domestic_charges = $conn->query("SELECT * FROM arrival_notice_charges WHERE shipment_id=$shipment_id AND charge_type='domestic' ORDER BY sort_order")->fetch_all(MYSQLI_ASSOC);
 
 // Xóa các dòng sells cũ từ arrival domestic
-$conn->query("DELETE FROM shipment_sells WHERE shipment_id=$shipment_id AND notes LIKE '[ARRIVAL_DOM_%'");
+$stmt_del_dom = $conn->prepare("DELETE FROM shipment_sells WHERE shipment_id=? AND notes LIKE '[ARRIVAL\\_DOM\\_%'");
+$stmt_del_dom->bind_param("i", $shipment_id);
+$stmt_del_dom->execute();
+$stmt_del_dom->close();
 
 foreach ($domestic_charges as $dc) {
-    $dc_cc = $conn->query("SELECT id FROM cost_codes WHERE code='" . $conn->real_escape_string($dc['cost_code']) . "' LIMIT 1")->fetch_assoc();
+    $stmt_dc = $conn->prepare("SELECT id FROM cost_codes WHERE code=? LIMIT 1");
+    $stmt_dc->bind_param("s", $dc['cost_code']);
+    $stmt_dc->execute();
+    $dc_cc = $stmt_dc->get_result()->fetch_assoc();
+    $stmt_dc->close();
     $dc_code_id = $dc_cc ? intval($dc_cc['id']) : null;
     if (!$dc_code_id && $freight_code_id) $dc_code_id = $freight_code_id;
     if (!$dc_code_id) continue;
