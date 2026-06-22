@@ -68,6 +68,58 @@ function getCurrentUserName() {
 }
 
 // ─────────────────────────────────────────
+// HÀM CSRF TOKEN
+// ─────────────────────────────────────────
+
+// Tạo hoặc lấy CSRF token hiện tại
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+// Xác thực CSRF token từ form POST
+function verifyCsrfToken() {
+    $token = $_POST['csrf_token'] ?? '';
+    if (empty($token) || !isset($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// ─────────────────────────────────────────
+// HÀM GHI NHẬT KÝ HOẠT ĐỘNG
+// ─────────────────────────────────────────
+
+function logActivity($conn, $action, $module, $description) {
+    if (!isset($_SESSION['user_id'])) return;
+
+    // Tự tạo bảng nếu chưa có
+    $conn->query("CREATE TABLE IF NOT EXISTS activity_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        username VARCHAR(100),
+        action VARCHAR(50),
+        module VARCHAR(50),
+        description TEXT,
+        ip_address VARCHAR(45),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $user_id     = intval($_SESSION['user_id']);
+    $username    = $_SESSION['username'] ?? '';
+    $ip_address  = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, username, action, module, description, ip_address) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stmt) {
+        $stmt->bind_param("isssss", $user_id, $username, $action, $module, $description, $ip_address);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+// ─────────────────────────────────────────
 // HÀM THÔNG BÁO
 // ─────────────────────────────────────────
 
