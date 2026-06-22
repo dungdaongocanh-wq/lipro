@@ -78,6 +78,19 @@ $_dir     = basename(dirname($_SERVER['PHP_SELF']));
                 </li>
 
                 
+                <li class="nav-item">
+                    <a class="nav-link <?php echo ($_dir === 'reports') ? 'active' : ''; ?>"
+                       href="/lipro/reports/index.php">
+                        <i class="bi bi-bar-chart-line"></i> Báo cáo
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo ($_dir === 'exchange_rates') ? 'active' : ''; ?>"
+                       href="/lipro/exchange_rates/index.php">
+                        <i class="bi bi-currency-exchange"></i> Tỷ giá
+                    </a>
+                </li>
+
                 <?php if (isAdmin()): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -90,12 +103,30 @@ $_dir     = basename(dirname($_SERVER['PHP_SELF']));
                         <li><a class="dropdown-item" href="/lipro/cost_codes/index.php">
                             <i class="bi bi-tag"></i> Mã chi phí
                         </a></li>
+                        <li><a class="dropdown-item" href="/lipro/logs/activity.php">
+                            <i class="bi bi-journal-text"></i> Nhật ký hoạt động
+                        </a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
                 <?php endif; /* end !isSupplier */ ?>
 
             </ul>
+
+            <!-- Search bar toàn cục -->
+            <?php if (!isSupplier()): ?>
+            <form class="d-flex mx-3" role="search" id="globalSearchForm" autocomplete="off">
+                <div class="input-group input-group-sm" style="width:240px;">
+                    <input type="text" class="form-control" id="globalSearchInput"
+                           placeholder="Tìm lô hàng, KH, NCC..." aria-label="Tìm kiếm">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                </div>
+                <div class="position-absolute bg-white border rounded shadow-sm mt-5 w-auto"
+                     id="searchResults" style="display:none;z-index:9999;min-width:300px;max-width:420px;"></div>
+            </form>
+            <?php endif; ?>
 
             <ul class="navbar-nav align-items-center">
                 <?php if (!isSupplier() && $_unread > 0): ?>
@@ -129,6 +160,10 @@ $_dir     = basename(dirname($_SERVER['PHP_SELF']));
                         </span></li>
                         <li><hr class="dropdown-divider"></li>
                         <?php endif; ?>
+                        <li><a class="dropdown-item" href="/lipro/accounts/profile.php">
+                            <i class="bi bi-person-gear"></i> Hồ sơ cá nhân
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/lipro/logout.php">
                             <i class="bi bi-box-arrow-right"></i> Đăng xuất
                         </a></li>
@@ -138,3 +173,47 @@ $_dir     = basename(dirname($_SERVER['PHP_SELF']));
         </div>
     </div>
 </nav>
+<?php if (!isSupplier()): ?>
+<script>
+(function() {
+    const input   = document.getElementById('globalSearchInput');
+    const results = document.getElementById('searchResults');
+    if (!input || !results) return;
+
+    let timer;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        const q = this.value.trim();
+        if (q.length < 2) { results.style.display = 'none'; return; }
+        timer = setTimeout(function () {
+            fetch('/lipro/api/search.php?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.length) {
+                        results.innerHTML = '<div class="p-3 text-muted small">Không tìm thấy kết quả</div>';
+                    } else {
+                        const icons = { shipment: 'bi-box', customer: 'bi-people', supplier: 'bi-truck' };
+                        results.innerHTML = data.map(item =>
+                            `<a href="${item.url}" class="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark border-bottom search-item">
+                                <i class="bi ${icons[item.type] || 'bi-search'} text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold small">${item.label}</div>
+                                    <div class="text-muted" style="font-size:.75rem;">${item.type}</div>
+                                </div>
+                            </a>`
+                        ).join('');
+                    }
+                    results.style.display = 'block';
+                })
+                .catch(() => { results.style.display = 'none'; });
+        }, 300);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !results.contains(e.target)) {
+            results.style.display = 'none';
+        }
+    });
+})();
+</script>
+<?php endif; ?>
