@@ -1,6 +1,7 @@
 <?php
 require_once '../config/database.php';
 require_once '../config/mail.php';
+require_once '../config/helpers.php';
 checkLogin();
 
 require_once '../vendor/autoload.php';
@@ -48,19 +49,6 @@ $cd_no   = $shipment['customs_declaration_no'] ?? '';
 $auto_subject = 'ARRIVAL NOTICE // LIPRO // ' . $hawb . (!empty($cd_no) ? ' // ' . $cd_no : '');
 
 $error = ''; $success = '';
-
-// ============================================================
-// HELPER: tách email
-// ============================================================
-function splitEmails(string $str): array {
-    $parts = preg_split('/[;,]/', $str);
-    $result = [];
-    foreach ($parts as $p) {
-        $p = trim($p);
-        if ($p !== '' && filter_var($p, FILTER_VALIDATE_EMAIL)) $result[] = $p;
-    }
-    return $result;
-}
 
 // ============================================================
 // Build Excel Arrival Notice (inline, dùng đúng cột DB)
@@ -312,9 +300,11 @@ function buildArrivalXlsx($shipment, $foreign_charges, $domestic_charges, $usd_r
 
     $sheet->getPageSetup()->setPrintArea("A1:K{$r}");
 
-    ob_start();
-    (new Xlsx($ss))->save('php://output');
-    return ob_get_clean();
+    $tmpFile = tempnam(sys_get_temp_dir(), 'arrival_xlsx_');
+    (new Xlsx($ss))->save($tmpFile);
+    $content = file_get_contents($tmpFile);
+    unlink($tmpFile);
+    return $content;
 }
 
 // ============================================================
@@ -414,7 +404,11 @@ function buildArrivalMailBody($shipment, $foreign_charges, $domestic_charges, $u
 // XỬ LÝ GỬI MAIL
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_mail'])) {
-    $to_email   = trim($_POST['to_email']   ?? '');
+    $to_raw     = trim($_POST['to_email'] ?? '');
+    $to_emails  = splitEmails($to_raw);
+    $to_email   = $to_emails[0] ?? '';
+    $auto_cc    = array_slice($to_emails, 1);
+
     $to_name    = trim($_POST['to_name']    ?? '');
     $cc_str     = trim($_POST['cc_email']   ?? '');
     $bcc_str    = trim($_POST['bcc_email']  ?? '');
@@ -422,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_mail'])) {
     $body_extra = trim($_POST['body_extra'] ?? '');
 
     if (empty($to_email) || !filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Email người nhận không hợp lệ!';
+        $error = 'Email người nhận (To) không hợp lệ! Ít nhất một email hợp lệ phải được nhập.';
     } else {
         try {
             $mail = new PHPMailer(true);
@@ -436,6 +430,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_mail'])) {
             $mail->CharSet    = 'UTF-8';
             $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
             $mail->addAddress($to_email, $to_name);
+            // Thêm auto CC từ to field
+            foreach ($auto_cc as $acc) {
+                $mail->addCC($acc);
+            }
             $mail->addBCC('dung@dnaexpress.vn', 'Dung');
 
             foreach (splitEmails($cc_str)  as $cc)  $mail->addCC($cc);
@@ -462,20 +460,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_mail'])) {
 
             // Cập nhật trạng thái + tự động chuyển sang "Đã thông quan"
 $sent_at = date('Y-m-d H:i:s');
-$conn2 = getDBConnection();
-$stmt_upd = $conn2->prepare("UPDATE shipments SET arrival_notice_sent='yes', arrival_notice_sent_at=?, status='cleared' WHERE id=?");
+$stmt_upd = $conn->prepare("UPDATE shipments SET arrival_notice_sent='yes', arrival_notice_sent_at=?, status='cleared' WHERE id=?");
 $stmt_upd->bind_param("si", $sent_at, $id);
 $stmt_upd->execute();
 $stmt_upd->close();
-$conn2->close();
 
             $shipment['arrival_notice_sent']    = 'yes';
             $shipment['arrival_notice_sent_at'] = $sent_at;
 
             // Reload attachments
-            $conn3 = getDBConnection();
-            $saved_attachments = $conn3->query("SELECT * FROM shipment_attachments WHERE shipment_id=$id ORDER BY uploaded_at ASC")->fetch_all(MYSQLI_ASSOC);
-            $conn3->close();
+            $saved_attachments = $conn->query("SELECT * FROM shipment_attachments WHERE shipment_id=$id ORDER BY uploaded_at ASC")->fetch_all(MYSQLI_ASSOC);
 
             $attCount = count($saved_attachments);
             $success  = '✅ Đã gửi Thông Báo Hàng Đến thành công đến <strong>' . htmlspecialchars($to_email) . '</strong>!'
@@ -489,28 +483,10 @@ $conn2->close();
     }
 }
 
-$conn->close();
-
-// ============================================================
-// HELPER functions for file list
-// ============================================================
-function fmtSize(int $bytes): string {
-    if ($bytes < 1024)    return $bytes . ' B';
-    if ($bytes < 1048576) return round($bytes / 1024, 1) . ' KB';
-    return round($bytes / 1048576, 1) . ' MB';
-}
-
-function fileIcon(string $type): string {
-    if (str_contains($type, 'pdf'))   return 'bi-file-earmark-pdf text-danger';
-    if (str_contains($type, 'excel') || str_contains($type, 'spreadsheet')) return 'bi-file-earmark-excel text-success';
-    if (str_contains($type, 'word')  || str_contains($type, 'document'))    return 'bi-file-earmark-word text-primary';
-    if (str_contains($type, 'image')) return 'bi-file-earmark-image text-info';
-    if (str_contains($type, 'zip')   || str_contains($type, 'rar')) return 'bi-file-earmark-zip text-warning';
-    return 'bi-file-earmark text-secondary';
-}
-
 // Grand total for display
 $grand_total_vnd = array_sum(array_column($foreign_charges,'total_vnd')) + array_sum(array_column($domestic_charges,'total_vnd'));
+
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -626,10 +602,11 @@ $grand_total_vnd = array_sum(array_column($foreign_charges,'total_vnd')) + array
                         <input type="hidden" name="send_mail" value="1">
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold"><i class="bi bi-envelope text-primary"></i> Gửi đến (To) <span class="text-danger">*</span></label>
-                            <input type="email" name="to_email" id="toEmail" class="form-control" required
-                                   placeholder="email@company.com" oninput="updatePreviewInfo()"
+                            <label class="form-label fw-bold"><i class="bi bi-envelope text-primary"></i> Gửi đến (To) — email đầu tiên là người nhận chính, các email sau tự động thành CC <span class="text-danger">*</span></label>
+                            <input type="text" name="to_email" id="toEmail" class="form-control" required
+                                   placeholder="email1@company.com; email2@another.com" oninput="updatePreviewInfo()"
                                    value="<?php echo htmlspecialchars($_POST['to_email'] ?? ($shipment['customer_email'] ?? '')); ?>">
+                            <small class="text-muted">Email đầu tiên là To, các email tiếp theo tự động vào CC</small>
                         </div>
 
                         <div class="mb-3">

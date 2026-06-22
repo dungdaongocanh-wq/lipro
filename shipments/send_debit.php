@@ -1,6 +1,7 @@
 <?php
 require_once '../config/database.php';
 require_once '../config/mail.php';
+require_once '../config/helpers.php';
 checkLogin();
 
 require_once '../vendor/autoload.php';
@@ -65,21 +66,6 @@ $cus_name     = $shipment['company_name'] ?? '';
 $auto_subject = 'DEBIT // LIPRO // ' . $hawb . (!empty($cd_no) ? ' // ' . $cd_no : '');
 
 $conn->close();
-
-// ============================================================
-// HELPER: tách email từ chuỗi dùng ; hoặc ,
-// ============================================================
-function splitEmails(string $str): array {
-    $parts = preg_split('/[;,]/', $str);
-    $result = [];
-    foreach ($parts as $p) {
-        $p = trim($p);
-        if ($p !== '' && filter_var($p, FILTER_VALIDATE_EMAIL)) {
-            $result[] = $p;
-        }
-    }
-    return $result;
-}
 
 // ============================================================
 // HÀM TẠO FILE EXCEL (giữ nguyên)
@@ -376,18 +362,20 @@ function buildMailBodyText($shipment, $total_sell) {
 // ============================================================
 $error = ''; $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $to_email   = trim($_POST['to_email']   ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_mail'])) {
+    $to_raw     = trim($_POST['to_email'] ?? '');
+    $to_emails  = splitEmails($to_raw);
+    $to_email   = $to_emails[0] ?? '';
+    $auto_cc    = array_slice($to_emails, 1);
+
     $to_name    = trim($_POST['to_name']    ?? '');
     $cc_str     = trim($_POST['cc_email']   ?? '');
     $bcc_str    = trim($_POST['bcc_email']  ?? '');
     $subject    = trim($_POST['subject']    ?? $auto_subject);
     $body_extra = trim($_POST['body_extra'] ?? '');
 
-    if (empty($to_email)) {
-        $error = 'Vui lòng nhập email người nhận!';
-    } elseif (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Email người nhận không hợp lệ!';
+    if (empty($to_email) || !filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Email người nhận (To) không hợp lệ! Ít nhất một email hợp lệ phải được nhập.';
     } else {
         $tmpFile = '';
         try {
@@ -410,6 +398,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
             $mail->addAddress($to_email, $to_name);
+            // Thêm auto CC từ to field
+            foreach ($auto_cc as $acc) {
+                $mail->addCC($acc);
+            }
 
             // BCC cố định
             $mail->addBCC('dung@dnaexpress.vn', 'Dung');
@@ -476,21 +468,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = '❌ Lỗi hệ thống: ' . $e->getMessage() . ' <small>(line ' . $e->getLine() . ')</small>';
         }
     }
-}
-
-function fmtSize(int $bytes): string {
-    if ($bytes < 1024)       return $bytes . ' B';
-    if ($bytes < 1048576)    return round($bytes / 1024, 1) . ' KB';
-    return round($bytes / 1048576, 1) . ' MB';
-}
-
-function fileIcon(string $type): string {
-    if (str_contains($type, 'pdf'))   return 'bi-file-earmark-pdf text-danger';
-    if (str_contains($type, 'excel') || str_contains($type, 'spreadsheet')) return 'bi-file-earmark-excel text-success';
-    if (str_contains($type, 'word') || str_contains($type, 'document'))     return 'bi-file-earmark-word text-primary';
-    if (str_contains($type, 'image')) return 'bi-file-earmark-image text-info';
-    if (str_contains($type, 'zip') || str_contains($type, 'rar')) return 'bi-file-earmark-zip text-warning';
-    return 'bi-file-earmark text-secondary';
 }
 ?>
 <!DOCTYPE html>
@@ -602,10 +579,11 @@ function fileIcon(string $type): string {
                         <input type="hidden" name="send_mail" value="1">
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold"><i class="bi bi-envelope text-primary"></i> Gửi đến (To) <span class="text-danger">*</span></label>
-                            <input type="email" name="to_email" id="toEmail" class="form-control" required
-                                   placeholder="email@company.com" oninput="updatePreviewInfo()"
+                            <label class="form-label fw-bold"><i class="bi bi-envelope text-primary"></i> Gửi đến (To) — email đầu tiên là người nhận chính, các email sau tự động thành CC <span class="text-danger">*</span></label>
+                            <input type="text" name="to_email" id="toEmail" class="form-control" required
+                                   placeholder="email1@company.com; email2@another.com" oninput="updatePreviewInfo()"
                                    value="<?php echo htmlspecialchars($_POST['to_email'] ?? ($shipment['customer_email'] ?? '')); ?>">
+                            <small class="text-muted">Email đầu tiên là To, các email tiếp theo tự động vào CC</small>
                         </div>
 
                         <div class="mb-3">
