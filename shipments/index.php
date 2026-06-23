@@ -49,6 +49,17 @@ $orderClause = $sort_by === 'invoice_no'
     ? "ORDER BY (s.invoice_no IS NULL OR s.invoice_no = '') ASC, s.invoice_no $sort_dir"
     : "ORDER BY s.$sort_by $sort_dir";
 
+// Phân trang
+$per_page    = 25;
+$page        = max(1, intval($_GET['page'] ?? 1));
+$count_sql   = "SELECT COUNT(*) c FROM shipments s
+                LEFT JOIN customers c ON s.customer_id = c.id
+                $whereClause";
+$count_res   = $conn->query($count_sql);
+$total_count = intval($count_res->fetch_assoc()['c'] ?? 0);
+$total_pages = $total_count > 0 ? ceil($total_count / $per_page) : 1;
+$offset      = ($page - 1) * $per_page;
+
 $sql = "SELECT s.*,
                c.company_name, c.short_name AS customer_short,
                COALESCE(sc.total_cost, 0) AS total_cost,
@@ -59,7 +70,8 @@ $sql = "SELECT s.*,
         LEFT JOIN (SELECT shipment_id, SUM(total_amount) AS total_cost FROM shipment_costs GROUP BY shipment_id) sc ON sc.shipment_id = s.id
         LEFT JOIN (SELECT shipment_id, SUM(total_amount) AS total_sell FROM shipment_sells GROUP BY shipment_id) ss ON ss.shipment_id = s.id
         $whereClause
-        $orderClause";
+        $orderClause
+        LIMIT $per_page OFFSET $offset";
 
 $result = $conn->query($sql);
 
@@ -642,6 +654,13 @@ function sortIcon($col) {
                 </small>
             </div>
             <div class="card-body p-0">
+                <?php if ($total_count > 0): ?>
+                <div class="px-3 pt-2 pb-0">
+                    <small class="text-muted">
+                        Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
+                    </small>
+                </div>
+                <?php endif; ?>
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered mb-0">
                         <thead>
@@ -987,6 +1006,30 @@ function sortIcon($col) {
                 </div>
             </div>
         </div>
+
+        <!-- Pagination -->
+        <?php if ($total_pages > 1): ?>
+        <nav aria-label="Phân trang" class="mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
+                </small>
+                <ul class="pagination pagination-sm mb-0">
+                    <?php if ($page > 1): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">‹</a></li>
+                    <?php endif; ?>
+                    <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
+                    <li class="page-item <?php echo $p === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $p])); ?>"><?php echo $p; ?></a>
+                    </li>
+                    <?php endfor; ?>
+                    <?php if ($page < $total_pages): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">›</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </nav>
+        <?php endif; ?>
 
     </div>
 

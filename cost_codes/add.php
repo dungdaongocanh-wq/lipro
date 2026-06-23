@@ -42,18 +42,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Thêm Mã chi phí - Forwarder System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm Mã chi phí - LIPRO LOGISTICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/lipro/assets/css/custom.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="../dashboard.php"><i class="bi bi-box-seam"></i> Forwarder System</a>
-        </div>
-    </nav>
+    <?php
+    $conn = $conn ?? getDBConnection();
+    $page_title = 'Thêm Mã chi phí';
+    include '../partials/sidebar.php';
+    ?>
 
-    <div class="container mt-4">
+    <div id="main-content">
+        <?php include '../partials/topbar.php'; ?>
+
+    <div class="container-fluid px-4 py-3">
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <div class="card">
@@ -99,8 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
         </div>
-    </div>
+    </div><!-- /container-fluid -->
+    </div><!-- /main-content -->
 
+    <?php include '../partials/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -67,58 +67,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thêm Khách hàng - Forwarder System</title>
+    <title>Thêm Khách hàng - LIPRO LOGISTICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/lipro/assets/css/custom.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-box-seam"></i> Forwarder System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../dashboard.php">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">Khách hàng</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../shipments/index.php">Lô hàng</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../suppliers/index.php">Nhà cung cấp</a>
-                    </li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../accounts/index.php">Tài khoản</a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> <?php echo $_SESSION['full_name']; ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="../logout.php">Đăng xuất</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php
+    $conn = $conn ?? getDBConnection();
+    $page_title = 'Thêm Khách hàng';
+    include '../partials/sidebar.php';
+    ?>
 
-    <!-- Content -->
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-8 offset-md-2">
+    <div id="main-content">
+        <?php include '../partials/topbar.php'; ?>
+
+        <div class="container-fluid px-4 py-3">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm Khách hàng mới</h5>
@@ -204,9 +170,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+            </div>
+        </div><!-- /container-fluid -->
+    </div><!-- /main-content -->
 
+    <?php include '../partials/footer.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const emailInput = document.getElementById('emailInput');
