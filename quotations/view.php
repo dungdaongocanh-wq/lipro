@@ -160,23 +160,35 @@ $cw       = $quot['cw']       ?? null;
                     </button>
                 </form>
             <?php endif; ?>
+            <?php if ($quot['status'] === 'accepted'): ?>
+                <a href="create_shipment.php?id=<?php echo $id; ?>"
+                   class="btn btn-primary btn-sm"
+                   onclick="return confirm('Tạo lô hàng mới từ báo giá này?\nCác dòng doanh thu sẽ được điền tự động từ báo giá.')">
+                    <i class="bi bi-plus-circle"></i> Tạo lô hàng
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
     <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success alert-dismissible fade show no-print">
             <?php
-                if ($_GET['success'] === 'updated')  echo '<i class="bi bi-check-circle"></i> Cập nhật báo giá thành công!';
-                if ($_GET['success'] === 'sent')     echo '<i class="bi bi-send"></i> Đã đánh dấu báo giá là Đã gửi!';
-                if ($_GET['success'] === 'accepted') echo '<i class="bi bi-check-circle"></i> Đã đánh dấu báo giá là Chấp nhận!';
+                if ($_GET['success'] === 'updated')        echo '<i class="bi bi-check-circle"></i> Cập nhật báo giá thành công!';
+                if ($_GET['success'] === 'sent')           echo '<i class="bi bi-send"></i> Đã đánh dấu báo giá là Đã gửi!';
+                if ($_GET['success'] === 'accepted')       echo '<i class="bi bi-check-circle"></i> Đã đánh dấu báo giá là Chấp nhận!';
+                if ($_GET['success'] === 'from_quotation') echo '<i class="bi bi-box"></i> Đã tạo lô hàng thành công từ báo giá này!';
             ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <?php if (isset($_GET['error']) && $_GET['error'] === 'no_change'): ?>
+    <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-warning alert-dismissible fade show no-print">
-            <i class="bi bi-exclamation-triangle"></i> Không thể thay đổi trạng thái.
+            <?php
+                if ($_GET['error'] === 'no_change')       echo '<i class="bi bi-exclamation-triangle"></i> Không thể thay đổi trạng thái.';
+                if ($_GET['error'] === 'not_accepted')    echo '<i class="bi bi-exclamation-triangle"></i> Chỉ có thể tạo lô hàng từ báo giá đã được chấp nhận.';
+                if ($_GET['error'] === 'shipment_failed') echo '<i class="bi bi-exclamation-triangle"></i> Không thể tạo lô hàng. Vui lòng thử lại.';
+            ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>

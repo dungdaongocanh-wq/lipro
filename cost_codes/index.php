@@ -86,52 +86,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Mã chi phí - Forwarder System</title>
+    <title>Mã chi phí - LIPRO LOGISTICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/lipro/assets/css/custom.css">
     <style>
         .code-badge  { font-size: .85rem; letter-spacing: .5px; }
         .special-row { background: #fff8e1 !important; }
     </style>
 </head>
 <body class="bg-light">
+    <?php
+    $page_title = 'Mã chi phí';
+    include '../partials/sidebar.php';
+    ?>
 
-<!-- NAVBAR (giữ nguyên) -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="../dashboard.php"><i class="bi bi-box-seam"></i> Forwarder System</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="../dashboard.php">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="../customers/index.php">Khách hàng</a></li>
-                <li class="nav-item"><a class="nav-link" href="../shipments/index.php">Lô hàng</a></li>
-                <li class="nav-item"><a class="nav-link" href="../suppliers/index.php">Nhà cung cấp</a></li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">Quản trị</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="../accounts/index.php">Tài khoản</a></li>
-                        <li><a class="dropdown-item active" href="index.php">Mã chi phí</a></li>
-                    </ul>
-                </li>
-            </ul>
-            <ul class="navbar-nav">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['full_name']); ?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="../logout.php">Đăng xuất</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
+    <div id="main-content">
+        <?php include '../partials/topbar.php'; ?>
 
-<div class="container mt-4">
+<div class="container-fluid px-4 py-3">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0"><i class="bi bi-tag text-primary"></i> Quản lý Mã chi phí</h4>
@@ -543,6 +516,9 @@ document.querySelectorAll('input[name="code"]').forEach(function(el) {
     });
 });
 </script>
+</div><!-- /container-fluid -->
+</div><!-- /main-content -->
+
+<?php include '../partials/footer.php'; ?>
 </body>
 </html>
-<?php $conn->close(); ?>

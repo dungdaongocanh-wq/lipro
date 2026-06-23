@@ -1,67 +1,34 @@
 <?php
 require_once '../config/database.php';
 checkLogin();
-checkAdmin(); // Chỉ admin mới vào được
+checkAdmin();
 
 $conn = getDBConnection();
 
 // Lấy danh sách tài khoản
 $sql = "SELECT * FROM accounts ORDER BY created_at DESC";
 $result = $conn->query($sql);
+
+$page_title = 'Tài khoản';
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Tài khoản - Forwarder System</title>
+    <title>Tài khoản - LIPRO LOGISTICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/lipro/assets/css/custom.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-box-seam"></i> Forwarder System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../dashboard.php">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../customers/index.php">Khách hàng</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../shipments/index.php">Lô hàng</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../suppliers/index.php">Nhà cung cấp</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">Tài khoản</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> <?php echo $_SESSION['full_name']; ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="../logout.php">Đăng xuất</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include '../partials/sidebar.php'; ?>
+
+    <div id="main-content">
+        <?php include '../partials/topbar.php'; ?>
 
     <!-- Content -->
-    <div class="container mt-4">
+    <div class="container-fluid px-4 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-person-badge"></i> Quản lý Tài khoản</h2>
             <a href="add.php" class="btn btn-primary">
@@ -148,9 +115,10 @@ $result = $conn->query($sql);
                 </div>
             </div>
         </div>
-    </div>
+    </div><!-- /container-fluid -->
+    </div><!-- /main-content -->
 
+    <?php include '../partials/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-<?php $conn->close(); ?>

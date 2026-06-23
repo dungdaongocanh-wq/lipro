@@ -9,6 +9,12 @@ if (isset($conn) && $conn && !isSupplier()) {
     $r = @$conn->query("SELECT COUNT(*) c FROM shipments WHERE approval_status='pending_approval' AND deleted_at IS NULL");
     $_sb_pending = $r ? intval($r->fetch_assoc()['c'] ?? 0) : 0;
 }
+
+// Đếm thông báo chưa đọc
+$unread_notif_count = 0;
+if (isset($conn) && $conn && !isSupplier()) {
+    $unread_notif_count = getUnreadNotificationCount($conn);
+}
 ?>
 <!-- Sidebar overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -64,6 +70,15 @@ if (isset($conn) && $conn && !isSupplier()) {
         </a>
 
         <div class="sidebar-section-title mt-2">Phân tích</div>
+        <?php if (!isSupplier()): ?>
+        <a href="/lipro/notifications/index.php"
+           class="sidebar-link <?php echo $_sb_dir === 'notifications' ? 'active' : ''; ?>">
+            <i class="bi bi-bell"></i> Thông báo
+            <?php if ($unread_notif_count > 0): ?>
+            <span class="badge bg-danger ms-auto"><?php echo $unread_notif_count; ?></span>
+            <?php endif; ?>
+        </a>
+        <?php endif; ?>
         <a href="/lipro/reports/index.php"
            class="sidebar-link <?php echo $_sb_dir === 'reports' ? 'active' : ''; ?>">
             <i class="bi bi-bar-chart-line"></i> Báo cáo

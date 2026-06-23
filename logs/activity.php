@@ -42,7 +42,11 @@ if ($filter_date) {
     $types   .= 's';
 }
 
-$sql = "SELECT id, user_id, username, action, module, description, ip_address, created_at FROM activity_logs" . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY created_at DESC LIMIT 200";
+$per_page = 25;
+$page     = max(1, intval($_GET['page'] ?? 1));
+$offset   = ($page - 1) * $per_page;
+
+$sql = "SELECT id, user_id, username, action, module, description, ip_address, created_at FROM activity_logs" . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . " ORDER BY created_at DESC LIMIT $per_page OFFSET $offset";
 
 $stmt = $conn->prepare($sql);
 if ($params) {
@@ -51,6 +55,17 @@ if ($params) {
 $stmt->execute();
 $logs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Đếm tổng để phân trang
+$count_sql = "SELECT COUNT(*) c FROM activity_logs" . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
+$count_stmt = $conn->prepare($count_sql);
+if ($params) {
+    $count_stmt->bind_param($types, ...$params);
+}
+$count_stmt->execute();
+$total_count = intval($count_stmt->get_result()->fetch_assoc()['c'] ?? 0);
+$count_stmt->close();
+$total_pages = $total_count > 0 ? ceil($total_count / $per_page) : 1;
 
 // Lấy danh sách module cho bộ lọc
 $modules_result = $conn->query("SELECT DISTINCT module FROM activity_logs ORDER BY module");
@@ -181,12 +196,37 @@ $page_title = 'Nhật ký hoạt động';
                     </table>
                 </div>
             </div>
-            <?php if (!empty($logs)): ?>
+            <?php if ($total_count > 0): ?>
             <div class="card-footer text-muted small">
-                Hiển thị <?php echo count($logs); ?> bản ghi gần nhất
+                Hiển thị <?php echo min($total_count, $per_page); ?> trong tổng <?php echo $total_count; ?> bản ghi
             </div>
             <?php endif; ?>
         </div>
+
+        <!-- Pagination -->
+        <?php if ($total_pages > 1): ?>
+        <nav aria-label="Phân trang" class="mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
+                </small>
+                <ul class="pagination pagination-sm mb-0">
+                    <?php if ($page > 1): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">‹</a></li>
+                    <?php endif; ?>
+                    <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
+                    <li class="page-item <?php echo $p === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $p])); ?>"><?php echo $p; ?></a>
+                    </li>
+                    <?php endfor; ?>
+                    <?php if ($page < $total_pages): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">›</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </nav>
+        <?php endif; ?>
+
     </div>
 
     <?php include '../partials/footer.php'; ?>

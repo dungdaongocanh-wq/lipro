@@ -126,10 +126,51 @@ function logActivity($conn, $action, $module, $description) {
 // Đếm số thông báo chưa đọc của user hiện tại
 function getUnreadNotificationCount($conn) {
     if (!isset($_SESSION['user_id'])) return 0;
+
+    // Tự tạo bảng nếu chưa có
+    $conn->query("CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type VARCHAR(50) DEFAULT 'general',
+        title VARCHAR(255) NOT NULL,
+        message TEXT,
+        related_id INT DEFAULT NULL,
+        related_type VARCHAR(50) DEFAULT NULL,
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
     $uid  = intval($_SESSION['user_id']);
-    $res  = $conn->query("SELECT COUNT(*) c FROM notifications WHERE user_id = $uid AND is_read = 0");
+    $stmt = $conn->prepare("SELECT COUNT(*) c FROM notifications WHERE user_id = ? AND is_read = 0");
+    if (!$stmt) return 0;
+    $stmt->bind_param("i", $uid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $stmt->close();
     if (!$res) return 0;
     return intval($res->fetch_assoc()['c'] ?? 0);
+}
+
+// Tạo thông báo mới
+function createNotification($conn, $user_id, $type, $title, $message = null, $related_id = null, $related_type = null) {
+    $conn->query("CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type VARCHAR(50) DEFAULT 'general',
+        title VARCHAR(255) NOT NULL,
+        message TEXT,
+        related_id INT DEFAULT NULL,
+        related_type VARCHAR(50) DEFAULT NULL,
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $stmt = $conn->prepare("INSERT INTO notifications (user_id, type, title, message, related_id, related_type) VALUES (?, ?, ?, ?, ?, ?)");
+    if (!$stmt) return false;
+    $stmt->bind_param("isssls", $user_id, $type, $title, $message, $related_id, $related_type);
+    $result = $stmt->execute();
+    $stmt->close();
+    return $result;
 }
 
 // ─────────────────────────────────────────

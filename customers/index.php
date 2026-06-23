@@ -11,95 +11,53 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $whereConditions = [];
 
 if ($search) {
-    $whereConditions[] = "(company_name LIKE '%$search%' OR short_name LIKE '%$search%' OR tax_code LIKE '%$search%' OR contact_person LIKE '%$search%')";
+    $s = $conn->real_escape_string($search);
+    $whereConditions[] = "(company_name LIKE '%$s%' OR short_name LIKE '%$s%' OR tax_code LIKE '%$s%' OR contact_person LIKE '%$s%')";
 }
 
 if ($status_filter) {
-    $whereConditions[] = "status = '$status_filter'";
+    $sf = $conn->real_escape_string($status_filter);
+    $whereConditions[] = "status = '$sf'";
 }
 
-$whereClause = '';
-if (count($whereConditions) > 0) {
-    $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
-}
+$whereClause = count($whereConditions) > 0 ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+// Phân trang
+$per_page    = 25;
+$page        = max(1, intval($_GET['page'] ?? 1));
+$count_res   = $conn->query("SELECT COUNT(*) c FROM customers $whereClause");
+$total_count = intval($count_res->fetch_assoc()['c'] ?? 0);
+$total_pages = $total_count > 0 ? ceil($total_count / $per_page) : 1;
+$offset      = ($page - 1) * $per_page;
 
 // Lấy danh sách khách hàng
-$sql = "SELECT * FROM customers $whereClause ORDER BY created_at DESC";
+$sql    = "SELECT * FROM customers $whereClause ORDER BY created_at DESC LIMIT $per_page OFFSET $offset";
 $result = $conn->query($sql);
 
 // Thống kê
-$total_customers = $conn->query("SELECT COUNT(*) as count FROM customers")->fetch_assoc()['count'];
-$active_customers = $conn->query("SELECT COUNT(*) as count FROM customers WHERE status='active'")->fetch_assoc()['count'];
+$total_customers    = $conn->query("SELECT COUNT(*) as count FROM customers")->fetch_assoc()['count'];
+$active_customers   = $conn->query("SELECT COUNT(*) as count FROM customers WHERE status='active'")->fetch_assoc()['count'];
 $inactive_customers = $conn->query("SELECT COUNT(*) as count FROM customers WHERE status='inactive'")->fetch_assoc()['count'];
 
-$conn->close();
+$page_title = 'Khách hàng';
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Khách hàng - Forwarder System</title>
+    <title>Khách hàng - LIPRO LOGISTICS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/lipro/assets/css/custom.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="../dashboard.php">
-                <i class="bi bi-box-seam"></i> Forwarder System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../dashboard.php">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="index.php">Khách hàng</a>
-                    </li>
-		   <li class="nav-item">
-                        <a class="nav-link" href="../quotations/index.php">Báo Giá</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../shipments/index.php">Lô hàng</a>
-                    </li>
-		    <li class="nav-item"><a class="nav-link" href="../debt/index.php">Công Nợ</a>
-		    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../suppliers/index.php">Nhà cung cấp</a>
-                    </li>
-                    <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            Quản trị
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="../accounts/index.php">Tài khoản</a></li>
-                            <li><a class="dropdown-item" href="../cost_codes/index.php">Mã chi phí</a></li>
-                        </ul>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> <?php echo $_SESSION['full_name']; ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="../logout.php">Đăng xuất</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include '../partials/sidebar.php'; ?>
 
-    <!-- Content -->
-    <div class="container-fluid mt-4">
+    <div id="main-content">
+        <?php include '../partials/topbar.php'; ?>
+
+        <div class="container-fluid px-4 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="bi bi-people"></i> Quản lý Khách hàng</h2>
             <div>
@@ -207,7 +165,7 @@ $conn->close();
                         </thead>
                         <tbody>
                             <?php if ($result->num_rows > 0): ?>
-                                <?php $stt = 1; while ($row = $result->fetch_assoc()): ?>
+                                <?php $stt = $offset + 1; while ($row = $result->fetch_assoc()): ?>
                                     <tr>
                                         <td><?php echo $stt++; ?></td>
                                         <td>
@@ -281,14 +239,35 @@ $conn->close();
                 </ul>
             </div>
         </div>
-    </div>
 
-    <footer class="bg-light text-center py-3 mt-5">
-        <p class="mb-0 text-muted">
-            &copy; <?php echo date('Y'); ?> Forwarder System - Quản lý vận tải quốc tế
-        </p>
-    </footer>
+        <!-- Pagination -->
+        <?php if ($total_pages > 1): ?>
+        <nav aria-label="Phân trang" class="mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
+                </small>
+                <ul class="pagination pagination-sm mb-0">
+                    <?php if ($page > 1): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">‹</a></li>
+                    <?php endif; ?>
+                    <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
+                    <li class="page-item <?php echo $p === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $p])); ?>"><?php echo $p; ?></a>
+                    </li>
+                    <?php endfor; ?>
+                    <?php if ($page < $total_pages): ?>
+                    <li class="page-item"><a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">›</a></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </nav>
+        <?php endif; ?>
 
+        </div><!-- /container-fluid -->
+    </div><!-- /main-content -->
+
+    <?php include '../partials/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
