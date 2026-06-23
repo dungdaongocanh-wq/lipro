@@ -26,25 +26,61 @@ $recent_shipments = $conn->query("SELECT s.*, c.short_name as customer_short_nam
     FROM shipments s LEFT JOIN customers c ON s.customer_id = c.id 
     WHERE s.deleted_at IS NULL ORDER BY s.created_at DESC LIMIT 5");
 
-// Tài chính tổng quát
-$total_cost  = $conn->query("SELECT COALESCE(SUM(total_amount),0) t FROM shipment_costs")->fetch_assoc()['t'];
-$total_sell  = $conn->query("SELECT COALESCE(SUM(total_amount),0) t FROM shipment_sells")->fetch_assoc()['t'];
+// ─── Tài chính tổng quát (chỉ tính lô chưa bị xoá) ────────────────────────
+// Dùng subquery để tránh nhân chéo khi JOIN nhiều bảng chi tiết
+$total_cost = $conn->query("
+    SELECT COALESCE(SUM(sc.total_amount), 0) AS t
+    FROM shipment_costs sc
+    INNER JOIN shipments s ON s.id = sc.shipment_id
+    WHERE s.deleted_at IS NULL
+")->fetch_assoc()['t'];
+
+$total_sell = $conn->query("
+    SELECT COALESCE(SUM(ss.total_amount), 0) AS t
+    FROM shipment_sells ss
+    INNER JOIN shipments s ON s.id = ss.shipment_id
+    WHERE s.deleted_at IS NULL
+")->fetch_assoc()['t'];
+
 $total_profit = $total_sell - $total_cost;
 
 // Thống kê thông báo chưa đọc
 $unread_notif = getUnreadNotificationCount($conn);
 
-// Biểu đồ doanh thu 6 tháng gần nhất
-$chart_stmt = $conn->prepare("SELECT 
-    DATE_FORMAT(s.created_at, '%Y-%m') as mo,
-    COALESCE(SUM(sc.total_amount),0) as cost,
-    COALESCE(SUM(ss.total_amount),0) as sell
-    FROM shipments s
-    LEFT JOIN shipment_costs sc ON sc.shipment_id = s.id
-    LEFT JOIN shipment_sells ss ON ss.shipment_id = s.id
-    WHERE s.deleted_at IS NULL AND s.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-    GROUP BY DATE_FORMAT(s.created_at, '%Y-%m')
-    ORDER BY mo ASC");
+// ─── Biểu đồ doanh thu 6 tháng gần nhất ───────────────────────────────────
+// Dùng subquery riêng cho cost và sell để tránh Cartesian product
+$chart_stmt = $conn->prepare("
+    SELECT
+        mo,
+        COALESCE(cost, 0)  AS cost,
+        COALESCE(sell, 0)  AS sell
+    FROM (
+        SELECT DATE_FORMAT(s.created_at, '%Y-%m') AS mo
+        FROM shipments s
+        WHERE s.deleted_at IS NULL
+          AND s.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(s.created_at, '%Y-%m')
+    ) AS months
+    LEFT JOIN (
+        SELECT DATE_FORMAT(s.created_at, '%Y-%m') AS mo,
+               SUM(sc.total_amount) AS cost
+        FROM shipment_costs sc
+        INNER JOIN shipments s ON s.id = sc.shipment_id
+        WHERE s.deleted_at IS NULL
+          AND s.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(s.created_at, '%Y-%m')
+    ) AS c USING (mo)
+    LEFT JOIN (
+        SELECT DATE_FORMAT(s.created_at, '%Y-%m') AS mo,
+               SUM(ss.total_amount) AS sell
+        FROM shipment_sells ss
+        INNER JOIN shipments s ON s.id = ss.shipment_id
+        WHERE s.deleted_at IS NULL
+          AND s.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(s.created_at, '%Y-%m')
+    ) AS v USING (mo)
+    ORDER BY mo ASC
+");
 $chart_stmt->execute();
 $chart_rows = $chart_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $chart_stmt->close();
@@ -379,7 +415,7 @@ $doughnut_colors = json_encode(array_column($status_rows, 'color'));
             </div>
             <div class="col-md-3">
                 <a href="suppliers/add.php" class="btn btn-success w-100 mb-3">
-                    <i class="bi bi-building-add"></i> Thêm nhà cung c��p
+                    <i class="bi bi-building-add"></i> Thêm nhà cung cấp
                 </a>
             </div>
             <?php if (isAdmin()): ?>
