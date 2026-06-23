@@ -176,7 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <?php include '../partials/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const emailInput = document.getElementById('emailInput');
         const emailError = document.getElementById('emailError');

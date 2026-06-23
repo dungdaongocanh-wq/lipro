@@ -654,13 +654,6 @@ function sortIcon($col) {
                 </small>
             </div>
             <div class="card-body p-0">
-                <?php if ($total_count > 0): ?>
-                <div class="px-3 pt-2 pb-0">
-                    <small class="text-muted">
-                        Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
-                    </small>
-                </div>
-                <?php endif; ?>
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered mb-0">
                         <thead>

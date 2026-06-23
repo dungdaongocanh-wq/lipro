@@ -198,7 +198,7 @@ $page_title = 'Nhật ký hoạt động';
             </div>
             <?php if ($total_count > 0): ?>
             <div class="card-footer text-muted small">
-                Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> bản ghi
+                Hiển thị <?php echo min($total_count, $per_page); ?> trong tổng <?php echo $total_count; ?> bản ghi
             </div>
             <?php endif; ?>
         </div>

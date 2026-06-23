@@ -162,11 +162,6 @@ $page_title = 'Nhà cung cấp';
         <!-- Bảng danh sách -->
         <div class="card">
             <div class="card-body">
-                <?php if ($total_count > 0): ?>
-                <p class="text-muted small mb-2">
-                    Hiển thị <?php echo $offset + 1; ?>–<?php echo min($offset + $per_page, $total_count); ?> trong tổng <?php echo $total_count; ?> kết quả
-                </p>
-                <?php endif; ?>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-light">
